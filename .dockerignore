@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pkl
+*.csv
+*.xlsx
+*.log
+.env
+venv/
+data/
+app/static/output/

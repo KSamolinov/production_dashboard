@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Производственный дашборд</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #f4f6f9;
+      --card-bg: #fff;
+      --text: #000;
+      --muted: #555;
+      --shadow: 0 2px 5px rgba(0,0,0,0.1);
+      --radius: 10px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      margin: 0;
+      color: var(--text);
+    }
+    header {
+      background: #2c3e50;
+      color: #fff;
+      padding: 16px;
+      text-align: center;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 20px;
+    }
+    .container { padding: 20px; }
+
+    /* Фильтры */
+    .filters {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      align-items: end;
+    }
+    .filters label { font-size: 14px; color: #222; }
+    .filters input,
+    .filters select,
+    .filters button {
+      padding: 6px 8px;
+      font-size: 14px;
+    }
+    .filters button {
+      border: none;
+      background: #2c3e50;
+      color: #fff;
+      border-radius: 6px;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+    }
+    .filters button[disabled] { opacity: .6; cursor: not-allowed; }
+
+    /* KPI */
+    .kpi-container {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+    }
+    .kpi {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 15px;
+      flex: 1;
+      min-width: 200px;
+      text-align: center;
+    }
+    .kpi h3 {
+      margin: 0;
+      font-size: 16px;
+      color: #555;
+      font-weight: 600;
+    }
+    .kpi p {
+      margin: 6px 0 0;
+      font-size: 22px;
+      font-weight: bold;
+      color: #000;
+    }
+
+    /* Графики и таблицы */
+    .charts {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .charts.row { flex-direction: row; }
+    .chart {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 15px;
+      box-shadow: var(--shadow);
+      text-align: center;
+      width: 100%;
+    }
+    .chart h3 { margin-top: 0; font-size: 16px; color: var(--muted); }
+    .chart img {
+      width: 100%;
+      height: auto;
+      border-radius: 6px;
+    }
+    .chart.pie { width: 50%; }
+    .chart.table {
+      width: 50%;
+      overflow-x: auto;
+    }
+    .chart.table table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .chart.table th, .chart.table td {
+      padding: 6px 8px;
+      border: 1px solid #ddd;
+      text-align: left;
+      white-space: nowrap;
+    }
+    .chart.bar-defects { margin-bottom: 20px; }
+
+    /* Адаптив */
+    @media (max-width: 900px) {
+      .charts.row { flex-direction: column; }
+      .chart.pie, .chart.table { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>📊 Производственный дашборд</h1>
+</header>
+
+<div class="container">
+  <!-- Фильтры -->
+  <div class="filters">
+    <label>Начало:
+      <input type="date" id="start" value="{{ start_iso }}" aria-label="Дата начала">
+    </label>
+    <label>Конец:
+      <input type="date" id="end" value="{{ end_iso }}" aria-label="Дата конца">
+    </label>
+    <label>Номенклатура:
+      <select id="nomenclature" aria-label="Номенклатура">
+        <option value="">Все</option>
+      </select>
+    </label>
+    <label>Участок:
+      <select id="place" aria-label="Участок">
+        <option value="">Все</option>
+      </select>
+    </label>
+    <button id="applyBtn" onclick="applyFilters()">Применить</button>
+  </div>
+
+  <!-- KPI -->
+  <div class="kpi-container">
+    <div class="kpi" role="status" aria-live="polite">
+      <h3>Всего карт</h3>
+      <p id="total_cards">{{ total_cards }}</p>
+    </div>
+    <div class="kpi" role="status" aria-live="polite">
+      <h3>Всего брака</h3>
+      <p id="total_defects">{{ total_defects }}</p>
+    </div>
+    <div class="kpi" role="status" aria-live="polite">
+      <h3>% брака</h3>
+      <p id="defect_percent">{{ defect_percent }} %</p>
+    </div>
+    <div class="kpi" role="status" aria-live="polite">
+      <h3>Стоимость брака</h3>
+      <p id="total_money">{{ total_money }}</p>
+    </div>
+  </div>
+
+  <!-- Графики -->
+  <div class="charts">
+    <div class="chart">
+      <h3>Динамика выпуска</h3>
+      <img id="line_total" src="/plots/line_total" alt="График динамики выпуска">
+    </div>
+    <div class="chart">
+      <h3>Динамика брака</h3>
+      <img id="line_defects" src="/plots/line_defects" alt="График динамики брака">
+    </div>
+    <div class="chart bar-defects">
+      <h3>Брак по номенклатурам</h3>
+      <img id="bar_defects" src="/plots/bar_defects" alt="Гистограмма брака по номенклатурам">
+    </div>
+  </div>
+
+  <!-- Pie + таблица -->
+  <div class="charts row">
+    <div class="chart pie">
+      <h3>Структура брака</h3>
+      <img id="pie_defects" src="/plots/pie_defects" alt="Круговая диаграмма структуры брака">
+    </div>
+    <div class="chart table">
+      <h3>Стоимость брака по видам</h3>
+      <div id="defects_table">Загрузка...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---------- Утилиты ----------
+  function escapeHTML(str) {
+    return String(str)
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#39;");
+  }
+  function formatNumber(value, suffix = "") {
+    const n = Number(value);
+    return (Number.isFinite(n) ? n.toLocaleString("ru-RU") : "0") + suffix;
+  }
+  function setLoading(isLoading) {
+    const btn = document.getElementById("applyBtn");
+    btn.disabled = isLoading;
+    btn.textContent = isLoading ? "Применяю..." : "Применить";
+  }
+
+  // ---------- KPI ----------
+  function updateKPI(start, end, nomen = "", place = "") {
+    let url = `/kpi?start=${start}&end=${end}`;
+    if (nomen) url += `&nomen=${encodeURIComponent(nomen)}`;
+    if (place) url += `&place=${encodeURIComponent(place)}`;
+
+    return fetch(url)
+      .then(resp => resp.json())
+      .then(data => {
+        document.getElementById("total_cards").innerText    = formatNumber(data.total_cards, " шт");
+        document.getElementById("total_defects").innerText  = formatNumber(data.total_defects, " шт");
+        const pct = Number(data.defect_percent);
+        document.getElementById("defect_percent").innerText = (Number.isFinite(pct) ? pct.toFixed(2) : "0.00") + " %";
+        document.getElementById("total_money").innerText    = formatNumber(data.total_money, " ₽");
+      })
+      .catch(err => {
+        console.error("Ошибка при обновлении KPI:", err);
+      });
+  }
+
+  // ---------- Таблица ----------
+  function updateDefectsTable(start, end, nomen = "", place = "") {
+    let url = `/tables/defects?start=${start}&end=${end}`;
+    if (nomen) url += `&nomen=${encodeURIComponent(nomen)}`;
+    if (place) url += `&place=${encodeURIComponent(place)}`;
+
+    const box = document.getElementById("defects_table");
+    box.textContent = "Загрузка...";
+
+    return fetch(url)
+      .then(resp => resp.json())
+      .then(rows => {
+        if (!Array.isArray(rows) || rows.length === 0) {
+          box.innerHTML = "<p>Нет данных</p>";
+          return;
+        }
+        let html = "<table><thead><tr><th>Вид брака</th><th>Сумма, ₽</th></tr></thead><tbody>";
+        for (const row of rows) {
+          if (row.sum === null) {
+            html += `<tr><td colspan="2" style="text-align:center; font-style:italic; color:#888;">
+                       ${escapeHTML(row.defect)}
+                     </td></tr>`;
+          } else {
+            html += `<tr>
+              <td>${escapeHTML(row.defect)}</td>
+              <td>${formatNumber(row.sum)} ₽</td>
+            </tr>`;
+          }
+        }
+        html += "</tbody></table>";
+        box.innerHTML = html;
+      })
+      .catch(err => {
+        console.error("Ошибка при загрузке таблицы:", err);
+        box.innerHTML = "<p>Ошибка загрузки</p>";
+      });
+  }
+
+  // ---------- Графики ----------
+  function refreshCharts(start, end, nomen = "", place = "") {
+    // если пользователь перепутал даты — поменяем местами
+    let s = start, e = end;
+    if (s && e && s > e) [s, e] = [e, s];
+
+    const qs = new URLSearchParams({
+      start: s,
+      end: e,
+      ...(nomen ? { nomen } : {}),
+      ...(place ? { place } : {}),
+      cb: Date.now().toString(), // кэш-бастер
+    }).toString();
+
+    document.getElementById("line_total").src   = `/plots/line_total?${qs}`;
+    document.getElementById("line_defects").src = `/plots/line_defects?${qs}`;
+    document.getElementById("bar_defects").src  = `/plots/bar_defects?${qs}`;
+    document.getElementById("pie_defects").src  = `/plots/pie_defects?${qs}`;
+  }
+
+  // ---------- Применение фильтров ----------
+  function applyFilters() {
+    const start = document.getElementById("start").value;
+    const end   = document.getElementById("end").value;
+    const nomen = document.getElementById("nomenclature").value;
+    const place = document.getElementById("place").value;
+
+    setLoading(true);
+    Promise.all([
+      updateKPI(start, end, nomen, place),
+      updateDefectsTable(start, end, nomen, place),
+    ]).finally(() => {
+      refreshCharts(start, end, nomen, place);
+      setLoading(false);
+    });
+  }
+
+  // ---------- Справочники ----------
+  function hydrateSelect(id, items) {
+    const select = document.getElementById(id);
+    if (!Array.isArray(items)) return;
+    for (const item of items) {
+      const opt = document.createElement("option");
+      opt.value = item;
+      opt.textContent = item;
+      select.appendChild(opt);
+    }
+  }
+
+  // Загрузка справочников параллельно
+  Promise.all([
+    fetch("/nomenclature").then(r => r.json()).then(data => hydrateSelect("nomenclature", data)).catch(() => {}),
+    fetch("/places").then(r => r.json()).then(data => hydrateSelect("place", data)).catch(() => {}),
+  ]).finally(() => {
+    // Инициализация значениями, пришедшими с бэка
+    const start = document.getElementById("start").value;
+    const end   = document.getElementById("end").value;
+    updateKPI(start, end);
+    updateDefectsTable(start, end);
+    refreshCharts(start, end);
+  });
+</script>
+</body>
+</html>
