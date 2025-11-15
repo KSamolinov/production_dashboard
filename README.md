@@ -30,19 +30,19 @@
 
 ## 📁 Структура проекта
 app/
-├── data_collection.py # Сбор и обработка данных
-├── graphs.py # Построение графиков
-├── main.py # Flask-приложение и маршруты
-├── templates/
-│ └── index.html # Главный шаблон дашборда
-├── static/
-│ └── output/ # Сгенерированные графики (PNG)
-├── data/ # Исходные таблицы (не публикуются)
-requirements.txt
-README.md
-.gitignore
-Dockerfile
-docker-compose.yml
+├── data_collection.py # Сбор и обработка данных  
+├── graphs.py # Построение графиков  
+├── main.py # Flask-приложение и маршруты  
+├── templates/  
+│ └── index.html # Главный шаблон дашборда  
+├── static/  
+│ └── output/ # Сгенерированные графики (PNG)  
+├── data/ # Исходные таблицы (не публикуются)  
+requirements.txt  
+README.md  
+.gitignore  
+Dockerfile  
+docker-compose.yml  
 
 
 ---
@@ -51,8 +51,6 @@ docker-compose.yml
 
 Для быстрого развёртывания проекта можно использовать Docker или Docker Compose.  
 Это гарантирует одинаковое окружение на любом компьютере.
-
-### 🔹 Вариант 1: Docker
 
 ```bash
 # Сборка образа
